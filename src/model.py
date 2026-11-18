@@ -29,6 +29,14 @@ import keras  # noqa: E402
 import tensorflow as tf  # noqa: E402
 
 tf.get_logger().setLevel("ERROR")  # hide noisy retracing warnings
+
+# Inside a container limited to N CPUs, TensorFlow still sees every core of the host machine and starts
+# that many threads, which then fight over the few CPUs the container really has. TF_THREADS fixes the
+# thread count to match the container's CPU limit (set in docker-compose.yml).
+_threads = int(os.getenv("TF_THREADS", "0"))
+if _threads > 0:
+    tf.config.threading.set_intra_op_parallelism_threads(_threads)
+    tf.config.threading.set_inter_op_parallelism_threads(1)
 from keras import layers, regularizers  # noqa: E402
 from sklearn.metrics import (  # noqa: E402
     accuracy_score, classification_report, confusion_matrix, f1_score,
@@ -42,7 +50,9 @@ from src.config import (  # noqa: E402
 N_CLASSES = len(CLASS_NAMES)
 
 
-#  BUILD
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
 def build_model(weights="imagenet", units=256, dropout=0.3, l2=1e-4, lr=1e-3):
     """Create the model. weights=None gives random weights (only used for offline tests)."""
     keras.utils.set_random_seed(SEED)
@@ -130,7 +140,9 @@ def train_head(head, X_train, y_train, X_val=None, y_val=None, epochs=10, lr=1e-
     return {k: [float(v) for v in vals] for k, vals in hist.history.items()}
 
 
-#  EVALUATE
+# ---------------------------------------------------------------------------
+# Evaluate
+# ---------------------------------------------------------------------------
 def compute_metrics(y_true, proba):
     """
     All the evaluation metrics in one dict:
@@ -171,7 +183,9 @@ def evaluate_model(model, images, labels):
     return compute_metrics(labels, proba)
 
 
-#  SAVE / LOAD WITH SIMPLE VERSIONING
+# ---------------------------------------------------------------------------
+# Save / load with simple versioning
+# ---------------------------------------------------------------------------
 def load_metadata():
     if METADATA_PATH.exists():
         return json.loads(METADATA_PATH.read_text())

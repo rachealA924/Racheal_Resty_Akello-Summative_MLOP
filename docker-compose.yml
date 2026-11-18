@@ -12,6 +12,8 @@ services:
     environment:
       - PORT=7860
       - LOG_PREDICTIONS=0   # skip the per-prediction database write during load tests
+      - TF_THREADS=1        # match TensorFlow's threads to the 1 CPU each container gets
+      - OMP_NUM_THREADS=1
     volumes:
       # shared by all containers: a retrained model saved by one container is picked up by the others
       - app_models:/app/models
@@ -20,7 +22,7 @@ services:
       resources:
         limits:
           cpus: "1.0"       # each container gets 1 CPU, so adding containers adds capacity
-          memory: 2g
+          memory: 3g
     restart: unless-stopped
 
   nginx:

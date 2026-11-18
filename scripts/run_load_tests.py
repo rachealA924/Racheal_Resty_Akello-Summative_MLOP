@@ -26,9 +26,25 @@ OUT = ROOT / "results" / "locust"
 HOST = "http://localhost:8080"
 
 
-def sh(cmd):
+def sh(cmd, check=True):
     print("$", " ".join(cmd), flush=True)
-    subprocess.run(cmd, cwd=ROOT, check=True)
+    return subprocess.run(cmd, cwd=ROOT, check=check).returncode
+
+
+def warm_up(n, rounds=3):
+    """Send a few predictions first, so every container has done its slow first call before timing starts."""
+    img = next(p for p in sorted((ROOT / "data" / "test").rglob("*.jpg")))
+    data = img.read_bytes()
+    boundary = "----warmup"
+    body = (f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"a.jpg\"\r\n"
+            f"Content-Type: image/jpeg\r\n\r\n").encode() + data + f"\r\n--{boundary}--\r\n".encode()
+    for _ in range(n * rounds):
+        req = urllib.request.Request(HOST + "/predict", data=body, method="POST",
+                                     headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
+        try:
+            urllib.request.urlopen(req, timeout=120).read()
+        except Exception as e:
+            print("warm-up request failed:", e)
 
 
 def wait_until_ready(n, timeout=300):
@@ -82,10 +98,19 @@ def main():
         sh(["docker", "compose", "up", "-d", "--scale", f"api={n}"])
         sh(["docker", "compose", "restart", "nginx"])
         wait_until_ready(n)
+        warm_up(n)
         prefix = OUT / f"{n}_containers"
-        sh([sys.executable, "-m", "locust", "-f", "locustfile.py", "--host", HOST, "--headless",
-            "-u", str(args.users), "-r", str(args.spawn_rate), "-t", args.duration,
-            "--csv", str(prefix), "--only-summary"])
+        # Locust exits with code 1 when some requests fail; record that and keep going
+        code = sh([sys.executable, "-m", "locust", "-f", "locustfile.py", "--host", HOST, "--headless",
+                   "-u", str(args.users), "-r", str(args.spawn_rate), "-t", args.duration,
+                   "--csv", str(prefix), "--only-summary"], check=False)
+        if code != 0:
+            # keep the container logs, they show why requests failed (crash, out of memory, ...)
+            with open(OUT / f"{n}_containers_logs.txt", "w") as f:
+                subprocess.run(["docker", "compose", "ps", "-a"], cwd=ROOT, stdout=f, stderr=subprocess.STDOUT)
+                subprocess.run(["docker", "compose", "logs", "--tail", "60", "api"], cwd=ROOT, stdout=f,
+                               stderr=subprocess.STDOUT)
+            print(f"some requests failed; container logs saved to {OUT / f'{n}_containers_logs.txt'}")
         row = {"containers": n, "users": args.users, "duration": args.duration,
                **read_stats(f"{prefix}_stats.csv")}
         summary.append(row)
