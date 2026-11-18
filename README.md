@@ -8,7 +8,7 @@ that can predict, show data insights, accept new labelled images and **retrain i
 | 🎥 **Video demo** | TODO: YouTube link |
 | 🌐 **Live app** | TODO: `https://<your-hf-username>-cassava-leaf-doctor.hf.space` |
 | 📘 **API docs (Swagger UI)** | TODO: live app URL + `/docs` |
-| 📓 **Notebook** | [`notebook/cassava_mlops.ipynb`](notebook/summative_cassava_mlops.ipynb) |
+| 📓 **Notebook** | [`notebook/summative_cassava_mlops.ipynb`](notebook/summative_cassava_mlops.ipynb) |
 
 ---
 
@@ -81,7 +81,7 @@ ReduceLROnPlateau, softened class weights for the imbalanced classes.
 cassava-mlops/
 ├── README.md
 ├── notebook/
-│   └── cassava_mlops.ipynb      acquisition, preprocessing, training, evaluation, retraining demo
+│   └── summative_cassava_mlops.ipynb      acquisition, preprocessing, training, evaluation, retraining demo
 ├── src/
 │   ├── preprocessing.py         image loading, validation, resizing, image features
 │   ├── model.py                 build, train, evaluate (6 metrics), save/load with versioning
@@ -107,7 +107,7 @@ cassava-mlops/
 ## 5. Setup
 
 ### Step 1: Train the model in Colab (once)
-1. Open `notebook/cassava_mlops.ipynb` in Google Colab and choose a **T4 GPU** runtime.
+1. Open `notebook/summative_cassava_mlops.ipynb` in Google Colab and choose a **T4 GPU** runtime.
 2. In the first code cell, set `REPO_URL` to this repository's URL.
 3. Add your Kaggle API token as a Colab secret named `KAGGLE_API_TOKEN` (key icon on the left sidebar).
    You must also have joined the [competition](https://www.kaggle.com/competitions/cassava-leaf-disease-classification).
@@ -177,13 +177,13 @@ Results from the notebook (held-out test set of 3,210 images, imbalanced like th
 
 | Metric | Value |
 |---|---|
-| Accuracy | TODO |
-| Loss (cross-entropy) | TODO |
-| Precision (macro) | TODO |
-| Recall (macro) | TODO |
-| F1 (macro) | TODO |
-| F1 (weighted) | TODO |
-| AUC (macro, one-vs-rest) | TODO |
+| Accuracy | 0.7299 |
+| Loss (cross-entropy) | 0.7434 |
+| Precision (macro) | 0.5789 |
+| Recall (macro) | 0.5703 |
+| F1 (macro) | 0.5730 |
+| F1 (weighted) | 0.7289 |
+| AUC (macro, one-vs-rest) | 0.8959 |
 
 For reference, the summative's E11 model reached accuracy 0.728, macro F1 0.571 and macro AUC 0.896 on its test set.
 The app's **Model status** page shows scores on the smaller, *balanced* test sample in `data/test`, so its
