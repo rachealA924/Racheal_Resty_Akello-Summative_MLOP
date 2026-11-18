@@ -213,12 +213,12 @@ The table from `results/locust/summary.md` below.
 **How to read it:** with one container, requests queue up behind each other, so response time grows with the
 number of users. Each extra container adds another CPU working in parallel, so the average and 95th percentile
 response times should fall and requests per second should rise. 
+
 What the results show: all three runs handled the full flood of 50 users with 0 failed requests. Adding containers clearly improved performance:
 
 Throughput rose from 6.4 requests per second with 1 container to 11.8 with 2 (1.8 times more) and 14.1 with 3 (2.2 times more).
 Average response time fell from 6.4 seconds to 3.3 seconds with 2 containers (about half) and 2.7 seconds with 3.
 95th percentile response time (the time 95% of requests finish within) fell from 7.2 to 5.5 to 4.3 seconds.
-
 One container handles about 6.4 predictions per second, so each prediction needs roughly 155 ms of CPU time. The multi-second response times come from queueing: 50 users send requests faster than one container can answer, so requests wait in line. Each extra container works through that line in parallel. Going from 2 to 3 containers helped less than going from 1 to 2 for two reasons. First, the test machine has 4 CPUs, which the 3 containers share with nginx and Locust itself. Second, 50 users who each pause between requests can only send so many requests per second, so with 3 containers the system starts to run out of waiting work. More containers would help most under heavier traffic.
 
 To watch a test live, run `locust -f locustfile.py --host http://localhost:8080` and open http://localhost:8089.
