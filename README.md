@@ -8,7 +8,7 @@ that can predict, show data insights, accept new labelled images and **retrain i
 | 🎥 **Video demo** | TODO: YouTube link |
 | 🌐 **Live app** | TODO: `https://<your-hf-username>-cassava-leaf-doctor.hf.space` |
 | 📘 **API docs (Swagger UI)** | TODO: live app URL + `/docs` |
-| 📓 **Notebook** | [`notebook/cassava_mlops.ipynb`](notebook/cassava_mlops.ipynb) |
+| 📓 **Notebook** | [`notebook/cassava_mlops.ipynb`](notebook/summative_cassava_mlops.ipynb) |
 
 ---
 
