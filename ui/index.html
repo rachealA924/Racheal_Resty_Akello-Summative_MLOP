@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cassava Leaf Doctor</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f7f2; --card: #ffffff; --ink: #1d2a1f; --muted: #5f6f62; --line: #dfe5da;
+    --green: #2e7d32; --green-soft: #e6f2e6; --amber: #b26a00; --amber-soft: #fff3e0;
+    --red: #c62828; --red-soft: #fdecea; --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--ink); }
+  header { background: var(--green); color: #fff; padding: 18px 28px; display: flex;
+           align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  header h1 { margin: 0; font-size: 1.35rem; }
+  header p { margin: 2px 0 0; opacity: .85; font-size: .9rem; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.15);
+          padding: 6px 12px; border-radius: 999px; font-size: .85rem; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #9e9e9e; }
+  .dot.ok { background: #69f0ae; box-shadow: 0 0 0 3px rgba(105,240,174,.3); }
+  .dot.bad { background: #ff8a80; }
+  nav { display: flex; gap: 4px; padding: 0 28px; background: #fff; border-bottom: 1px solid var(--line);
+        overflow-x: auto; }
+  nav button { border: 0; background: none; padding: 14px 16px; font-size: .95rem; cursor: pointer;
+               color: var(--muted); border-bottom: 3px solid transparent; white-space: nowrap; }
+  nav button.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
+  main { max-width: 1150px; margin: 0 auto; padding: 24px 20px 60px; }
+  section { display: none; } section.active { display: block; }
+  .grid { display: grid; gap: 16px; }
+  .g4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); }
+  .g2f { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 800px) { .g2f { grid-template-columns: 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+          padding: 18px; }
+  .card h2 { margin: 0 0 4px; font-size: 1.05rem; } .card h3 { margin: 0 0 8px; font-size: .95rem; }
+  .sub { color: var(--muted); font-size: .88rem; margin: 0 0 14px; line-height: 1.45; }
+  .stat .label { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; }
+  .stat .value { font-size: 1.6rem; font-weight: 700; margin-top: 4px; }
+  .stat .note { color: var(--muted); font-size: .8rem; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+  .btn { background: var(--green); color: #fff; border: 0; border-radius: 8px; padding: 10px 18px;
+         font-size: .95rem; cursor: pointer; font-weight: 600; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.ghost { background: #fff; color: var(--green); border: 1px solid var(--green); }
+  .drop { display: block; border: 2px dashed #b9c7b4; border-radius: var(--radius); padding: 26px; text-align: center;
+          cursor: pointer; background: #fafcf8; transition: .15s; }
+  .drop.over { background: var(--green-soft); border-color: var(--green); }
+  .drop input { display: none; }
+  .preview { max-width: 100%; max-height: 260px; border-radius: 10px; display: block; margin: 12px auto 0; }
+  .result { margin-top: 14px; padding: 14px; border-radius: 10px; background: var(--green-soft); }
+  .result.wrong { background: var(--red-soft); }
+  .result .big { font-size: 1.3rem; font-weight: 700; }
+  .bar { display: flex; align-items: center; gap: 8px; font-size: .85rem; margin: 5px 0; }
+  .bar .name { width: 64px; } .bar .track { flex: 1; height: 10px; background: #edf1ea; border-radius: 6px; overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--green); } .bar .pct { width: 52px; text-align: right; color: var(--muted); }
+  .samples { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+  .samples img { width: 100%; aspect-ratio: 4/3; object-fit: cover; border-radius: 8px; cursor: pointer;
+                 border: 2px solid transparent; }
+  .samples img:hover { border-color: var(--green); }
+  .samples figure { margin: 0; } .samples figcaption { font-size: .72rem; color: var(--muted); text-align: center; }
+  select, input[type=number] { padding: 9px 10px; border-radius: 8px; border: 1px solid var(--line); font-size: .95rem; }
+  .progress { height: 12px; background: #edf1ea; border-radius: 8px; overflow: hidden; margin: 10px 0 4px; }
+  .progress div { height: 100%; background: var(--green); width: 0; transition: width .4s; }
+  .msg { padding: 10px 12px; border-radius: 8px; font-size: .88rem; margin-top: 12px; }
+  .msg.ok { background: var(--green-soft); } .msg.warn { background: var(--amber-soft); } .msg.err { background: var(--red-soft); }
+  .interp { background: #f8faf6; border-left: 4px solid var(--green); padding: 10px 12px; font-size: .88rem;
+            line-height: 1.5; border-radius: 0 8px 8px 0; margin-top: 10px; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: .75rem; font-weight: 600; }
+  .tag.ok { background: var(--green-soft); color: var(--green); } .tag.warn { background: var(--amber-soft); color: var(--amber); }
+  .tag.err { background: var(--red-soft); color: var(--red); }
+  canvas { max-height: 290px; }
+  .up { color: var(--green); } .down { color: var(--red); }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🌿 Cassava Leaf Doctor</h1>
+    <p>Detects 5 cassava leaf conditions from a photo · MobileNetV2 transfer learning</p>
+  </div>
+  <div class="pill"><span class="dot" id="hdrDot"></span><span id="hdrStatus">Checking...</span></div>
+</header>
+<nav>
+  <button class="active" data-tab="overview">Model status</button>
+  <button data-tab="predict">Predict</button>
+  <button data-tab="insights">Data insights</button>
+  <button data-tab="retrain">Upload &amp; retrain</button>
+</nav>
+
+<main>
+<!-- OVERVIEW -->
+<section id="overview" class="active">
+  <div class="grid g4">
+    <div class="card stat"><div class="label">Model up-time</div><div class="value" id="uptime">-</div><div class="note" id="started">-</div></div>
+    <div class="card stat"><div class="label">Model version</div><div class="value" id="version">-</div><div class="note" id="savedAt">-</div></div>
+    <div class="card stat"><div class="label">Predictions served</div><div class="value" id="nPred">-</div><div class="note" id="avgMs">-</div></div>
+    <div class="card stat"><div class="label">Requests served</div><div class="value" id="nReq">-</div><div class="note" id="container">-</div></div>
+  </div>
+  <div class="grid g2" style="margin-top:16px">
+    <div class="card">
+      <h2>Test-set performance (production model)</h2>
+      <p class="sub">Measured on the fixed held-out test set. Macro scores treat every class equally, which matters because CMD dominates the data.</p>
+      <table id="metricsTable"><tbody><tr><td>Loading...</td></tr></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Per-class recall</h2>
+      <p class="sub">Out of all test leaves of a class, the share the model found.</p>
+      <canvas id="recallChart"></canvas>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h2>Version history</h2>
+    <p class="sub">Every saved model, where it came from, and its test scores.</p>
+    <table id="historyTable"><tbody><tr><td>Loading...</td></tr></tbody></table>
+  </div>
+</section>
+
+<!-- PREDICT -->
+<section id="predict">
+  <div class="grid g2">
+    <div class="card">
+      <h2>Upload a leaf photo</h2>
+      <p class="sub">JPG or PNG. The image is resized to 224 × 224 and passed through the model.</p>
+      <label class="drop" id="predDrop">
+        <input type="file" id="predFile" accept="image/*">
+        <div>📷 <b>Click to choose</b> or drag a photo here</div>
+      </label>
+      <img id="predPreview" class="preview" hidden>
+      <div id="predResult"></div>
+    </div>
+    <div class="card">
+      <h2>Or try a test image with a known label</h2>
+      <p class="sub">These come from the held-out test set, so you can check the prediction against the true class.</p>
+      <div class="samples" id="samples"></div>
+    </div>
+  </div>
+</section>
+
+<!-- INSIGHTS -->
+<section id="insights">
+  <div class="card">
+    <h2>Class balance</h2>
+    <p class="sub">How many training images each class has in the deployed sample.</p>
+    <canvas id="classChart"></canvas>
+    <div class="interp" id="classInterp"></div>
+  </div>
+  <div class="grid g2f" id="featureCards" style="margin-top:16px"></div>
+  <div class="card" style="margin-top:16px">
+    <h2>Greenness vs yellow/brown share, per image</h2>
+    <p class="sub">Each dot is one leaf photo. Healthy leaves sit up and to the left (green, little yellow); diseased classes spread to the right.</p>
+    <canvas id="scatterChart"></canvas>
+  </div>
+</section>
+
+<!-- RETRAIN -->
+<section id="retrain">
+  <div class="grid g2">
+    <div class="card">
+      <h2>1. Upload new labelled data</h2>
+      <p class="sub">Pick several images and their class, <b>or</b> upload a .zip with one folder per class
+        (<code>CBB/</code>, <code>CBSD/</code>, <code>CGM/</code>, <code>CMD/</code>, <code>Healthy/</code>).
+        Each image is checked, saved and recorded in the database.</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <label for="upLabel">Class for loose images:</label>
+        <select id="upLabel">
+          <option value="">(from zip folders)</option>
+          <option>CBB</option><option>CBSD</option><option>CGM</option><option>CMD</option><option>Healthy</option>
+        </select>
+      </div>
+      <label class="drop" id="upDrop">
+        <input type="file" id="upFiles" multiple accept="image/*,.zip">
+        <div>📁 <b>Click to choose</b> or drag images / a zip here</div>
+        <div class="sub" id="upChosen" style="margin:8px 0 0">No files chosen</div>
+      </label>
+      <div style="margin-top:12px"><button class="btn" id="upBtn" disabled>Upload</button></div>
+      <div id="upMsg"></div>
+    </div>
+    <div class="card">
+      <h2>2. Retrain the model</h2>
+      <p class="sub">Retraining loads the current model and fine tunes it on the new images plus a sample of old ones,
+        then compares old and new on the test set. The new model is only promoted if it is not worse.</p>
+      <div class="grid g4" style="grid-template-columns:1fr 1fr">
+        <div class="stat"><div class="label">New images waiting</div><div class="value" id="pending">-</div></div>
+        <div class="stat"><div class="label">Auto trigger at</div><div class="value" id="threshold">-</div></div>
+      </div>
+      <div class="progress"><div id="threshBar"></div></div>
+      <div class="sub" id="pendingByClass"></div>
+      <button class="btn" id="retrainBtn">🔁 Retrain model</button>
+      <div id="runBox" hidden>
+        <div class="progress"><div id="runBar"></div></div>
+        <div class="sub" id="runStep"></div>
+      </div>
+      <div id="retrainMsg"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <h2>Retraining runs</h2>
+    <p class="sub">Test-set scores of the model before and after each run.</p>
+    <table id="runsTable"><tbody><tr><td>No runs yet.</td></tr></tbody></table>
+  </div>
+</section>
+</main>
+
+<script>
+const CLASSES = ["CBB", "CBSD", "CGM", "CMD", "Healthy"];
+const COLORS = {CBB: "#8d6e63", CBSD: "#f9a825", CGM: "#7cb342", CMD: "#e65100", Healthy: "#2e7d32"};
+const charts = {};
+const $ = id => document.getElementById(id);
+const pct = v => (v == null ? "-" : (v * 100).toFixed(1) + "%");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.detail || r.statusText);
+  return body;
+}
+function chart(id, cfg) { if (charts[id]) charts[id].destroy(); charts[id] = new Chart($(id), cfg); }
+function fmtUptime(s) {
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), sec = Math.floor(s % 60);
+  return d ? `${d}d ${h}h ${m}m` : h ? `${h}h ${m}m ${sec}s` : `${m}m ${sec}s`;
+}
+
+// TABS
+document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("nav button").forEach(x => x.classList.toggle("active", x === b));
+  document.querySelectorAll("section").forEach(s => s.classList.toggle("active", s.id === b.dataset.tab));
+  if (b.dataset.tab === "insights") loadInsights();
+  if (b.dataset.tab === "retrain") loadRetrain();
+});
+
+// OVERVIEW
+async function loadHealth() {
+  try {
+    const h = await api("/health");
+    $("hdrDot").className = "dot " + (h.model_loaded ? "ok" : "bad");
+    $("hdrStatus").textContent = h.model_loaded ? `Online · model v${h.model_version}` : "Online · no model loaded";
+    $("uptime").textContent = fmtUptime(h.uptime_seconds);
+    $("started").textContent = "since " + new Date(h.started_at).toLocaleString();
+    $("nPred").textContent = h.predictions_served;
+    $("avgMs").textContent = h.avg_prediction_ms ? `avg ${h.avg_prediction_ms} ms per prediction` : "no predictions yet";
+    $("nReq").textContent = h.requests_served;
+    $("container").textContent = `container ${h.container} · ${h.errors} errors`;
+  } catch (e) {
+    $("hdrDot").className = "dot bad"; $("hdrStatus").textContent = "Offline";
+  }
+}
+async function loadModel() {
+  try {
+    const m = await api("/model");
+    $("version").textContent = "v" + m.version;
+    $("savedAt").textContent = `${m.source} · ${new Date(m.saved_at).toLocaleString()}`;
+    const t = m.test_metrics;
+    const rows = [["Accuracy", t.accuracy], ["Loss (cross-entropy)", t.loss, true], ["Precision (macro)", t.precision_macro],
+      ["Recall (macro)", t.recall_macro], ["F1 score (macro)", t.f1_macro], ["F1 score (weighted)", t.f1_weighted],
+      ["AUC (macro, one-vs-rest)", t.auc_macro], ["Test images", t.n_samples, true]];
+    $("metricsTable").innerHTML = rows.filter(r => r[1] != null)
+      .map(r => `<tr><td>${r[0]}</td><td><b>${r[2] ? r[1] : pct(r[1])}</b></td></tr>`).join("");
+    const pc = (m.test_metrics_full || {}).per_class || {};
+    chart("recallChart", {type: "bar", data: {labels: CLASSES, datasets: [{label: "Recall",
+      data: CLASSES.map(c => pc[c] ? pc[c].recall : 0), backgroundColor: CLASSES.map(c => COLORS[c])}]},
+      options: {plugins: {legend: {display: false}}, scales: {y: {min: 0, max: 1, ticks: {callback: v => v * 100 + "%"}}}}});
+    $("historyTable").innerHTML = "<tr><th>Version</th><th>Source</th><th>Saved</th><th>Accuracy</th><th>Macro F1</th><th>Loss</th></tr>" +
+      [...m.history].reverse().map(h => `<tr><td>v${h.version}</td><td>${esc(h.source)}</td><td>${new Date(h.saved_at).toLocaleString()}</td>
+        <td>${pct(h.test_metrics.accuracy)}</td><td>${pct(h.test_metrics.f1_macro)}</td><td>${h.test_metrics.loss}</td></tr>`).join("");
+  } catch (e) {
+    $("metricsTable").innerHTML = `<tr><td>${esc(e.message)}</td></tr>`;
+  }
+}
+
+// PREDICT
+function setupDrop(dropId, inputId, onFiles) {
+  const drop = $(dropId), input = $(inputId);
+  input.onchange = () => onFiles(input.files);
+  ["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+  drop.addEventListener("drop", e => onFiles(e.dataTransfer.files));
+}
+async function runPrediction(blob, trueLabel) {
+  $("predPreview").src = URL.createObjectURL(blob); $("predPreview").hidden = false;
+  $("predResult").innerHTML = '<p class="sub">Predicting...</p>';
+  const fd = new FormData(); fd.append("file", blob, "leaf.jpg");
+  try {
+    const r = await api("/predict", {method: "POST", body: fd});
+    const wrong = trueLabel && trueLabel !== r.label;
+    const truth = trueLabel ? `<div style="margin-top:4px">True class: <b>${trueLabel}</b> ${wrong ? '<span class="tag err">incorrect</span>' : '<span class="tag ok">correct</span>'}</div>` : "";
+    const bars = Object.entries(r.probabilities).sort((a, b) => b[1] - a[1]).map(([c, p]) =>
+      `<div class="bar"><span class="name">${c}</span><span class="track"><span class="fill" style="display:block;width:${p * 100}%;background:${COLORS[c]}"></span></span><span class="pct">${pct(p)}</span></div>`).join("");
+    $("predResult").innerHTML = `<div class="result ${wrong ? "wrong" : ""}"><div class="sub" style="margin:0">Prediction</div>
+      <div class="big">${r.label} · ${r.description}</div><div>Confidence ${pct(r.confidence)}</div>${truth}</div>
+      <div style="margin-top:12px">${bars}</div>
+      <p class="sub" style="margin-top:8px">Model v${r.model_version} · ${r.latency_ms} ms · container ${esc(r.container)}</p>`;
+    loadHealth();
+  } catch (e) {
+    $("predResult").innerHTML = `<div class="msg err">${esc(e.message)}</div>`;
+  }
+}
+setupDrop("predDrop", "predFile", files => files[0] && runPrediction(files[0], null));
+async function loadSamples() {
+  try {
+    const s = await api("/samples?per_class=4");
+    $("samples").innerHTML = s.map(x => `<figure><img src="${x.url}" data-label="${x.label}" alt="${x.label}" loading="lazy"><figcaption>${x.label}</figcaption></figure>`).join("")
+      || '<p class="sub">No test images found in data/test.</p>';
+    $("samples").querySelectorAll("img").forEach(img => img.onclick = async () => {
+      const blob = await (await fetch(img.src)).blob();
+      runPrediction(blob, img.dataset.label);
+    });
+  } catch (e) { $("samples").textContent = e.message; }
+}
+
+// INSIGHTS
+async function loadInsights() {
+  try {
+    const d = await api("/insights");
+    chart("classChart", {type: "bar", data: {labels: CLASSES, datasets: [{label: "Training images",
+      data: CLASSES.map(c => d.class_counts[c] || 0), backgroundColor: CLASSES.map(c => COLORS[c])}]},
+      options: {plugins: {legend: {display: false}}}});
+    $("classInterp").textContent = d.class_interpretation;
+    const box = $("featureCards"); box.innerHTML = "";
+    Object.entries(d.features).forEach(([key, f], i) => {
+      box.insertAdjacentHTML("beforeend", `<div class="card"><h3>${i + 1}. ${esc(f.title)}</h3>
+        <canvas id="feat_${key}"></canvas><div class="interp">${esc(f.interpretation)}</div></div>`);
+      const cls = CLASSES.filter(c => f.mean[c] != null);
+      chart("feat_" + key, {type: "bar", data: {labels: cls, datasets: [
+        {label: "Mean", data: cls.map(c => f.mean[c]), backgroundColor: cls.map(c => COLORS[c])}]},
+        options: {plugins: {legend: {display: false}, tooltip: {callbacks: {afterLabel: ctx => "std " + f.std[cls[ctx.dataIndex]].toFixed(3)}}}}});
+    });
+    const g = d.features.greenness, y = d.features.yellow_ratio;
+    if (g && y) {
+      chart("scatterChart", {type: "scatter", data: {datasets: CLASSES.filter(c => g.values[c]).map(c => ({
+        label: c, backgroundColor: COLORS[c] + "bb", pointRadius: 4,
+        data: g.values[c].map((v, i) => ({x: y.values[c][i], y: v}))}))},
+        options: {scales: {x: {title: {display: true, text: "Yellow / brown pixel share"}},
+                           y: {title: {display: true, text: "Greenness G/(R+G+B)"}}}}});
+    }
+  } catch (e) { $("classInterp").textContent = e.message; }
+}
+
+// UPLOAD & RETRAIN
+let chosen = [];
+setupDrop("upDrop", "upFiles", files => {
+  chosen = [...files];
+  $("upChosen").textContent = chosen.length ? `${chosen.length} file(s): ${chosen.slice(0, 4).map(f => f.name).join(", ")}${chosen.length > 4 ? "..." : ""}` : "No files chosen";
+  $("upBtn").disabled = !chosen.length;
+});
+$("upBtn").onclick = async () => {
+  const fd = new FormData(); chosen.forEach(f => fd.append("files", f)); fd.append("label", $("upLabel").value);
+  $("upBtn").disabled = true; $("upMsg").innerHTML = '<div class="msg warn">Uploading and checking images...</div>';
+  try {
+    const r = await api("/upload", {method: "POST", body: fd});
+    const by = Object.entries(r.saved_by_label).map(([k, v]) => `${k}: ${v}`).join(", ");
+    let html = `<div class="msg ok">Saved <b>${r.saved}</b> image(s) to the database${by ? " (" + by + ")" : ""}.</div>`;
+    if (r.rejected.length) html += `<div class="msg err">Rejected ${r.rejected.length}: ${r.rejected.slice(0, 5).map(x => esc(x.file) + " (" + esc(x.reason) + ")").join("; ")}</div>`;
+    if (r.auto_retrain_started) html += `<div class="msg warn">${r.pending_total} images are waiting (threshold ${r.retrain_threshold}), so retraining started automatically.</div>`;
+    $("upMsg").innerHTML = html; chosen = []; $("upChosen").textContent = "No files chosen";
+    loadRetrain();
+  } catch (e) { $("upMsg").innerHTML = `<div class="msg err">${esc(e.message)}</div>`; $("upBtn").disabled = false; }
+};
+$("retrainBtn").onclick = async () => {
+  $("retrainMsg").innerHTML = "";
+  try { await api("/retrain", {method: "POST"}); loadRetrain(); }
+  catch (e) { $("retrainMsg").innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+};
+let pollTimer = null;
+async function loadRetrain() {
+  try {
+    const s = await api("/retrain/status");
+    const p = s.uploads.pending_total;
+    $("pending").textContent = p; $("threshold").textContent = s.auto_retrain ? s.retrain_threshold : "off";
+    $("threshBar").style.width = Math.min(100, p / s.retrain_threshold * 100) + "%";
+    $("pendingByClass").textContent = p ? "Waiting: " + Object.entries(s.uploads.pending).map(([k, v]) => `${k} ${v}`).join(" · ") : "No new images waiting.";
+    $("retrainBtn").disabled = s.running || p === 0;
+    $("runBox").hidden = !s.running;
+    $("runBar").style.width = s.progress + "%"; $("runStep").textContent = s.running ? `${s.progress}% · ${s.step}` : "";
+    if (!s.running && s.last_result && pollTimer) {
+      const r = s.last_result;
+      $("retrainMsg").innerHTML = `<div class="msg ${r.status === "success" ? (r.promoted ? "ok" : "warn") : "err"}">${esc(r.message)}</div>`;
+      loadModel(); loadHealth();
+    }
+    $("runsTable").innerHTML = s.runs.length ? "<tr><th>#</th><th>Trigger</th><th>Started</th><th>Images (new + old)</th><th>Accuracy before → after</th><th>Macro F1 before → after</th><th>Result</th></tr>" +
+      s.runs.map(r => {
+        const b = r.metrics_before || {}, a = r.metrics_after || {};
+        const arrow = (x, y) => x == null ? "-" : `${pct(x)} → <b class="${y >= x ? "up" : "down"}">${pct(y)}</b>`;
+        const tag = r.status === "running" ? '<span class="tag warn">running</span>' : r.status === "failed" ? `<span class="tag err" title="${esc(r.message)}">failed</span>` :
+          r.promoted ? `<span class="tag ok">promoted v${r.model_version}</span>` : '<span class="tag warn">kept old model</span>';
+        return `<tr><td>${r.id}</td><td>${r.trigger}</td><td>${new Date(r.started_at).toLocaleString()}</td>
+          <td>${r.n_new_images ?? "-"} + ${r.n_replay_images ?? "-"}</td><td>${arrow(b.accuracy, a.accuracy)}</td><td>${arrow(b.f1_macro, a.f1_macro)}</td><td>${tag}</td></tr>`;
+      }).join("") : "<tr><td>No runs yet.</td></tr>";
+    clearTimeout(pollTimer);
+    pollTimer = s.running ? setTimeout(loadRetrain, 1500) : null;
+  } catch (e) { $("retrainMsg").innerHTML = `<div class="msg err">${esc(e.message)}</div>`; }
+}
+
+loadHealth(); loadModel(); loadSamples();
+setInterval(loadHealth, 5000);
+</script>
+</body>
+</html>

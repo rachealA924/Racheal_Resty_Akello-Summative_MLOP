@@ -1,0 +1,12 @@
+.git
+.venv
+venv
+**/__pycache__
+**/.ipynb_checkpoints
+notebook
+results
+scripts
+data/uploads
+data/*.db*
+models/archive
+deploy_artifacts.zip

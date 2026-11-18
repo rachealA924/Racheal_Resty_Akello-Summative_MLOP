@@ -1,0 +1,7 @@
+# Extra tools for the notebook and the load test (not needed inside the container)
+-r requirements.txt
+pandas>=2.0
+matplotlib>=3.8
+seaborn>=0.13
+jupyter>=1.0
+locust>=2.20

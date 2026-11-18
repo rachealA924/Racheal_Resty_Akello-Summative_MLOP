@@ -1,0 +1,38 @@
+# Local deployment with a load balancer in front of N API containers.
+#
+#   docker compose up -d --build                 # 1 container
+#   docker compose up -d --scale api=3           # 3 containers
+#   docker compose restart nginx                 # after scaling, so nginx sees the new containers
+#
+# Open http://localhost:8080  (nginx spreads requests over all api containers)
+services:
+  api:
+    build: .
+    image: cassava-mlops:latest
+    environment:
+      - PORT=7860
+      - LOG_PREDICTIONS=0   # skip the per-prediction database write during load tests
+    volumes:
+      # shared by all containers: a retrained model saved by one container is picked up by the others
+      - app_models:/app/models
+      - app_data:/app/data
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"       # each container gets 1 CPU, so adding containers adds capacity
+          memory: 2g
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  app_models:
+  app_data:

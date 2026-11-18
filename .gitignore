@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+.env
+
+# created while the app runs, not part of the repo
+data/uploads/
+data/*.db
+data/*.db-*
+models/archive/
+models/notebook_check.keras
+
+deploy_artifacts.zip

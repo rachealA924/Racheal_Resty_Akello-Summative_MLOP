@@ -1,0 +1,10 @@
+# Runtime (what the Docker container installs)
+# Keep tensorflow-cpu at the same version Colab printed in the notebook's setup cell,
+# so the saved .keras model loads without problems.
+tensorflow-cpu==2.21.0
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+pillow>=10.0
+numpy>=1.26
+scikit-learn>=1.4
