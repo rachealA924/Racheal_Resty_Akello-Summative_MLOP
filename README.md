@@ -6,8 +6,8 @@ that can predict, show data insights, accept new labelled images and **retrain i
 | | |
 |---|---|
 | 🎥 **Video demo** | TODO: YouTube link |
-| 🌐 **Live app** | TODO: `https://<your-hf-username>-cassava-leaf-doctor.hf.space` |
-| 📘 **API docs (Swagger UI)** | TODO: live app URL + `/docs` |
+| 🌐 **Live app** | `https://cassava-leaf-doctor.nicebay-2b0c3070.southafricanorth.azurecontainerapps.io/` |
+| 📘 **API docs (Swagger UI)** | `https://cassava-leaf-doctor.nicebay-2b0c3070.southafricanorth.azurecontainerapps.io/docs` |
 | 📓 **Notebook** | [`notebook/summative_cassava_mlops.ipynb`](notebook/summative_cassava_mlops.ipynb) |
 
 ---
@@ -132,15 +132,36 @@ docker compose up -d --build      # app + nginx load balancer
 ```
 Open http://localhost:8080. Stop with `docker compose down` (add `-v` to also wipe uploads and retrained models).
 
-### Step 3: Deploy to the cloud (Hugging Face Spaces, free)
+### Step 3: Deploy to the cloud (Azure Container Apps)
+The app runs on **Azure Container Apps** (Azure for Students subscription, region South Africa North).
+The Docker image is built in GitHub Codespaces, pushed to Azure Container Registry, and run as a
+container with 1 vCPU and 2 GB RAM.
+
 ```bash
-pip install huggingface_hub
-python scripts/deploy_hf.py --space YOUR_HF_USERNAME/cassava-leaf-doctor --token hf_YOUR_WRITE_TOKEN
+# sign in and enable Container Apps (one time)
+az login --use-device-code
+az extension add --name containerapp --upgrade
+az provider register -n Microsoft.App --wait
+az provider register -n Microsoft.OperationalInsights --wait
+az provider register -n Microsoft.ContainerRegistry --wait
+
+# build the image, push it to the registry, deploy it
+ACR=<your-registry-name>
+az acr update --name $ACR --admin-enabled true
+az acr login --name $ACR
+docker build -t $ACR.azurecr.io/cassava-leaf-doctor:v1 .
+docker push $ACR.azurecr.io/cassava-leaf-doctor:v1
+ACR_PW=$(az acr credential show --name $ACR --query "passwords[0].value" -o tsv)
+az containerapp up --name cassava-leaf-doctor --resource-group cassava-rg --location southafricanorth \
+  --image $ACR.azurecr.io/cassava-leaf-doctor:v1 --ingress external --target-port 7860 \
+  --registry-server $ACR.azurecr.io --registry-username $ACR --registry-password "$ACR_PW"
+az containerapp update --name cassava-leaf-doctor --resource-group cassava-rg \
+  --cpu 1 --memory 2Gi --min-replicas 0 --max-replicas 1
 ```
-The Space builds the Dockerfile (5 to 10 minutes) and serves the app at
-`https://YOUR_HF_USERNAME-cassava-leaf-doctor.hf.space`. Free Spaces give 2 CPUs and 16 GB of RAM, which is
-enough for TensorFlow and for retraining. Note: a free Space restarts after inactivity and its disk resets, so
-uploads and retrained versions last until the next restart.
+
+The app scales to zero when nobody uses it, so **the first visit can take up to a minute** while the
+container starts and loads the model. After that, predictions take well under a second. Uploads and
+retrained versions are kept until the container restarts.
 
 ## 6. Using the app
 
@@ -221,5 +242,4 @@ To watch a test live, run `locust -f locustfile.py --host http://localhost:8080`
 * The classes are imbalanced (CMD about 61%), and CGM, CBSD and Healthy leaves are still confused with CMD.
 * The deployed app keeps a sample of training images, not all 21,397, so retraining fine tunes the head on new
   uploads plus that sample.
-* On free hosting, uploads and retrained models are lost when the Space restarts. A production system would keep
-  them in cloud storage.
+* On Azure Container Apps the container's disk is temporary, so uploads and retrained models are lost when it restarts. A production system would keep them in Azure Blob Storage.
