@@ -221,19 +221,26 @@ pip install -r requirements-dev.txt
 python scripts/run_load_tests.py --users 50 --duration 60s
 ```
 
-TODO: paste the table from `results/locust/summary.md` here.
+The table from `results/locust/summary.md` below.
 
-| Containers | Users | Requests | Failures | Avg (ms) | Median (ms) | 95th pct (ms) | Requests/s |
-|---|---|---|---|---|---|---|---|
-| 1 | 50 | | | | | | |
-| 2 | 50 | | | | | | |
-| 3 | 50 | | | | | | |
+| Containers | Users | Requests | Failures | Avg (ms) | Median (ms) | 95th pct (ms) | 99th pct (ms) | Max (ms) | Requests/s |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 50 | 380 | 0 | 6424.4 | 6900.0 | 7200.0 | 7300.0 | 7392.1 | 6.44 |
+| 2 | 50 | 696 | 0 | 3281.1 | 3200.0 | 5500.0 | 5700.0 | 5804.4 | 11.79 |
+| 3 | 50 | 832 | 0 | 2686.1 | 2600.0 | 4300.0 | 4500.0 | 4873.4 | 14.09 |
 
 ![Latency vs containers](results/locust/latency_vs_containers.png)
 
 **How to read it:** with one container, requests queue up behind each other, so response time grows with the
 number of users. Each extra container adds another CPU working in parallel, so the average and 95th percentile
-response times should fall and requests per second should rise. TODO: describe what your numbers show.
+response times should fall and requests per second should rise. 
+
+What the results show: all three runs handled the full flood of 50 users with 0 failed requests. Adding containers clearly improved performance:
+
+Throughput rose from 6.4 requests per second with 1 container to 11.8 with 2 (1.8 times more) and 14.1 with 3 (2.2 times more).
+Average response time fell from 6.4 seconds to 3.3 seconds with 2 containers (about half) and 2.7 seconds with 3.
+95th percentile response time (the time 95% of requests finish within) fell from 7.2 to 5.5 to 4.3 seconds.
+One container handles about 6.4 predictions per second, so each prediction needs roughly 155 ms of CPU time. The multi-second response times come from queueing: 50 users send requests faster than one container can answer, so requests wait in line. Each extra container works through that line in parallel. Going from 2 to 3 containers helped less than going from 1 to 2 for two reasons. First, the test machine has 4 CPUs, which the 3 containers share with nginx and Locust itself. Second, 50 users who each pause between requests can only send so many requests per second, so with 3 containers the system starts to run out of waiting work. More containers would help most under heavier traffic.
 
 To watch a test live, run `locust -f locustfile.py --host http://localhost:8080` and open http://localhost:8089.
 
