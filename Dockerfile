@@ -1,5 +1,5 @@
 # Cassava leaf disease API + web UI
-# Works on Hugging Face Spaces (Docker SDK, port 7860) and locally with docker compose.
+# Runs on Azure Container Apps (port 7860) and locally with docker compose. 
 FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
@@ -10,7 +10,7 @@ ENV PYTHONUNBUFFERED=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Hugging Face Spaces runs containers as user 1000, so the app folder must belong to it
+# Run as a normal user (no root) for the affected security; the app folder must belong to it
 RUN useradd -m -u 1000 appuser
 WORKDIR /app
 
