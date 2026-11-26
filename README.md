@@ -5,7 +5,7 @@ that can predict, show data insights, accept new labelled images and **retrain i
 
 | | |
 |---|---|
-| 🎥 **Video demo** | TODO: YouTube link |
+| 🎥 **Video demo** | `https://youtu.be/SyURi5dxxTk`](https://youtu.be/SyURi5dxxTk) |
 | 🌐 **Live app** | [`https://cassava-leaf-doctor.nicebay-2b0c3070.southafricanorth.azurecontainerapps.io/`](https://cassava-leaf-doctor.nicebay-2b0c3070.southafricanorth.azurecontainerapps.io/) |
 | 📘 **API docs (Swagger UI)** | [`https://cassava-leaf-doctor.nicebay-2b0c3070.southafricanorth.azurecontainerapps.io/docs`](https://cassava-leaf-doctor.nicebay-2b0c3070.southafricanorth.azurecontainerapps.io/docs) |
 | 📓 **Notebook** | [`notebook/summative_cassava_mlops.ipynb`](notebook/summative_cassava_mlops.ipynb) |
